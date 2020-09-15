@@ -65,6 +65,7 @@ const PrivateRoute: React.FC<RouteProps> = ({ children, ...rest }) => {
     />
   );
 };
+
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -74,7 +75,7 @@ const Login: React.FC = () => {
     fetch("/auth/", {
       method: "POST",
       headers: {
-        HTTP_X_CSRFTOKEN: decodeURIComponent(document.cookie.split("=")[1]),
+        X_CSRFTOKEN: decodeURIComponent(document.cookie.split("=")[1]),
       },
       credentials: "same-origin",
     }).then((response) => {
