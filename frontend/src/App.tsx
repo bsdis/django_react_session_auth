@@ -9,6 +9,16 @@ import {
 
 import "./App.css";
 
+function getCookie(name: string) {
+  for (let c of (document.cookie || "").split(";")) {
+    let [m, k, v] = Array.from(c.trim().match(/(\w+)=(.*)/)!);
+    if (m !== undefined && decodeURIComponent(k) === name) {
+      return decodeURIComponent(v);
+    }
+  }
+  return undefined;
+}
+
 function usePrevious(value: any) {
   const ref = useRef();
   useEffect(() => {
@@ -35,11 +45,16 @@ const PrivateRoute: React.FC<RouteProps> = ({ children, ...rest }) => {
 
     if (!resolved) {
       if (!isAuthenticated) {
-        fetch("/auth/", { method: "GET", credentials: "same-origin" }).then(
-          () => {
-            setResolved(true);
-          }
-        );
+        const cookie = getCookie("csrftoken");
+        fetch("/auth/", {
+          method: "GET",
+          headers: {
+            "X-CSRFToken": cookie ? cookie : "",
+          },
+          credentials: "same-origin",
+        }).then(() => {
+          setResolved(true);
+        });
       } else {
         setResolved(true);
       }
@@ -71,13 +86,16 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("subbing");
+
+    const cookie = getCookie("csrftoken");
+    console.log("subbing", cookie);
     fetch("/auth/", {
       method: "POST",
       headers: {
-        X_CSRFTOKEN: decodeURIComponent(document.cookie.split("=")[1]),
+        "X-CSRFToken": cookie ? cookie : "",
       },
       credentials: "same-origin",
+      body: JSON.stringify({ username: username, password: password }),
     }).then((response) => {
       console.log("response");
       console.log(response);
