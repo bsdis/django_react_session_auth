@@ -5,7 +5,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic import View
 from django.utils.datastructures import MultiValueDict
-import json
 
 @method_decorator(ensure_csrf_cookie, 'dispatch')
 class UserView(View):
@@ -19,12 +18,9 @@ class UserView(View):
         })
     # This is the login
     def post(self, request):
-        print(request.POST)
         form = AuthenticationForm(request, request.POST)        
         if form.is_valid():
-            print("form is valid")
             login(request, form.get_user())
-            print("USER", dir(request.user))
             return self.get(request)
         
         return http.JsonResponse(form.data, status=403)

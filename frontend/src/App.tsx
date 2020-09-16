@@ -27,7 +27,6 @@ const check = async () => {
     },
     credentials: "same-origin",
   });
-  console.log("checking", response.ok);
   return response.ok;
 };
 const login = async (username: string, password: string) => {
