@@ -1,4 +1,6 @@
-This repository is a demo of a blog describing how to use Django's session auth with a react application.
+This repository is a demo of a blog describing how to use Django's session auth together with an SPA.
+
+Here the SPA is demonstrated using a react application.
 
 The blog can be found here: https://blog.tinbrain.net/blog/session-auth-spa.html
 
