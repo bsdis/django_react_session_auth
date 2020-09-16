@@ -5,8 +5,8 @@ import {
   Switch,
   Route,
   BrowserRouter,
+  useHistory,
 } from "react-router-dom";
-
 import "./App.css";
 
 function getCookie(name: string) {
@@ -18,6 +18,46 @@ function getCookie(name: string) {
   }
   return undefined;
 }
+const check = async () => {
+  const cookie = getCookie("csrftoken");
+  const response = await fetch("/auth/", {
+    method: "GET",
+    headers: {
+      "X-CSRFToken": cookie ? cookie : "",
+    },
+    credentials: "same-origin",
+  });
+  console.log("checking", response.ok);
+  return response.ok;
+};
+const login = async (username: string, password: string) => {
+  const cookie = getCookie("csrftoken");
+  const data = new FormData();
+  data.append("username", username);
+  data.append("password", password);
+
+  const response = await fetch("/auth/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": cookie ? cookie : "",
+    },
+    credentials: "same-origin",
+    body: data,
+  });
+  return response.ok;
+};
+
+const logout = async () => {
+  const cookie = getCookie("csrftoken");
+  const response = await fetch("/auth/", {
+    method: "DELETE",
+    headers: {
+      "X-CSRFToken": cookie ? cookie : "",
+    },
+    credentials: "same-origin",
+  });
+  return response.ok;
+};
 
 function usePrevious(value: any) {
   const ref = useRef();
@@ -30,14 +70,18 @@ function usePrevious(value: any) {
 const PrivateRoute: React.FC<RouteProps> = ({ children, ...rest }) => {
   const [resolved, setResolved] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
   const prevIsAuthenticated = usePrevious(isAuthenticated);
+
   useEffect(() => {
+    const checkUser = async () => {
+      setIsAuthenticated(await check());
+    };
+
     const isAuthenticatedChanged =
       prevIsAuthenticated !== undefined &&
       isAuthenticated !== prevIsAuthenticated;
 
-    // remember to handle the edge case of when a user is logged in, then 401's on the next request
+    // handle the edge case of when a user is logged in, then 401's on the next request
     if (isAuthenticatedChanged && !isAuthenticated) {
       setResolved(false);
       return;
@@ -45,14 +89,7 @@ const PrivateRoute: React.FC<RouteProps> = ({ children, ...rest }) => {
 
     if (!resolved) {
       if (!isAuthenticated) {
-        const cookie = getCookie("csrftoken");
-        fetch("/auth/", {
-          method: "GET",
-          headers: {
-            "X-CSRFToken": cookie ? cookie : "",
-          },
-          credentials: "same-origin",
-        }).then(() => {
+        checkUser().finally(() => {
           setResolved(true);
         });
       } else {
@@ -60,6 +97,7 @@ const PrivateRoute: React.FC<RouteProps> = ({ children, ...rest }) => {
       }
     }
   }, [isAuthenticated, prevIsAuthenticated, resolved]);
+
   return !resolved ? null : (
     <Route
       {...rest}
@@ -84,21 +122,11 @@ const PrivateRoute: React.FC<RouteProps> = ({ children, ...rest }) => {
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const history = useHistory();
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    const cookie = getCookie("csrftoken");
-    console.log("subbing", cookie);
-    fetch("/auth/", {
-      method: "POST",
-      headers: {
-        "X-CSRFToken": cookie ? cookie : "",
-      },
-      credentials: "same-origin",
-      body: JSON.stringify({ username: username, password: password }),
-    }).then((response) => {
-      console.log("response");
-      console.log(response);
+    login(username, password).then((val) => {
+      if (val) history.push("/");
     });
   };
   return (
@@ -119,6 +147,23 @@ const Login: React.FC = () => {
     </>
   );
 };
+const Dashboard: React.FC = () => {
+  const history = useHistory();
+  return (
+    <>
+      You are now logged in:
+      <button
+        onClick={() => {
+          logout().then((val) => {
+            if (val) history.push("/login");
+          });
+        }}
+      >
+        Log out
+      </button>
+    </>
+  );
+};
 function App() {
   return (
     <BrowserRouter>
@@ -127,12 +172,10 @@ function App() {
           <Login />
         </Route>
         <PrivateRoute path="/">
-          You are now logged in:
-          <button onClick={() => {}}>Log out</button>
+          <Dashboard />
         </PrivateRoute>
       </Switch>
     </BrowserRouter>
   );
 }
-
 export default App;
